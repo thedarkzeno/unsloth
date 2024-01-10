@@ -259,7 +259,7 @@ class FastMistralModel(FastLlamaModel):
         model_name = "unsloth/mistral-7b-bnb-4bit",
         max_seq_length = 4096,
         dtype = None,
-        load_in_4bit = True,
+        load_in_4bit = False,
         token = None,
         device_map = "sequential",
         rope_scaling = None, # Mistral does not support RoPE scaling
