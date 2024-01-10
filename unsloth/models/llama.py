@@ -289,7 +289,16 @@ def LlamaDecoderLayer_fast_forward(
     """
     residual = hidden_states
 
-    hidden_states = fast_rms_layernorm(self.input_layernorm, hidden_states)
+    # hidden_states = fast_rms_layernorm(self.input_layernorm, hidden_states)
+    hidden_states = rms_norm_fn(
+                hidden_states,
+                self.input_layernorm.weight,
+                None,
+                eps=self.input_layernorm.variance_epsilon,
+                residual=None,
+                prenorm=False,
+                residual_in_fp32=False,
+            )
 
     # Self Attention
     hidden_states, self_attn_weights, present_key_value = self.self_attn(
@@ -302,13 +311,24 @@ def LlamaDecoderLayer_fast_forward(
         use_cache=use_cache,
         padding_mask=padding_mask,
     )
-    hidden_states = residual + hidden_states
+    # hidden_states = residual + hidden_states
 
-    # Fully Connected
-    residual = hidden_states
-    hidden_states = fast_rms_layernorm(self.post_attention_layernorm, hidden_states)
+    # # Fully Connected
+    # residual = hidden_states
+    # hidden_states = fast_rms_layernorm(self.post_attention_layernorm, hidden_states)
+    
+    #fused kernel sum + rms norm
+    hidden_states, residual = rms_norm_fn(
+                hidden_states,
+                self.post_attention_layernorm.weight,
+                None,
+                eps=self.post_attention_layernorm.variance_epsilon,
+                residual=residual,
+                prenorm=True,
+                residual_in_fp32=False,
+            )
     hidden_states = self.mlp(hidden_states)
-    hidden_states = residual + hidden_states
+    hidden_states = add(residual, hidden_states)#residual + hidden_states
 
     outputs = (hidden_states,)
 
