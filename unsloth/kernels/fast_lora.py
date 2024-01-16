@@ -60,6 +60,22 @@ def matmul_lora(X, W, W_quant, A, B, s, out = None):
 pass
 
 
+def matmul(X, W, out = None):
+    dtype = X.dtype
+
+    if X.dim() == 3:
+        batch, seq_len, d = X.shape
+        X = X.view(-1, X.shape[-1])
+        reshape = True
+    else:
+        reshape = False
+    pass
+
+    out = torch.matmul(X, W.t(), out = out)
+    
+    return out.view(batch, seq_len, -1) if reshape else out
+pass
+
 class LoRA_MLP(torch.autograd.Function):
     """
     ### LoRA weights
