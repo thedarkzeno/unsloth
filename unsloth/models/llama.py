@@ -31,6 +31,7 @@ if HAS_FLASH_ATTENTION:
 from transformers.models.llama.modeling_llama import (
     LlamaAttention,
     LlamaDecoderLayer,
+    LlamaMLP,
     LlamaModel,
     LlamaForCausalLM,
 )
@@ -56,7 +57,9 @@ import types
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, AutoConfig
 from transformers import set_seed as transformers_set_seed
 from peft import LoraConfig, TaskType, get_peft_model as _get_peft_model
-
+from torch.autograd import Function
+import torch.nn as nn
+import torch.nn.functional as F
 
 def original_apply_qkv(self, X):
     Q = self.q_proj(X)
@@ -260,6 +263,73 @@ def LlamaAttention_fast_forward(
     return attn_output, attn_weights, past_key_value
 pass
 
+# class LlamaMLPFunction(Function):
+#     @staticmethod
+#     def forward(ctx, x, gate_proj_weight, up_proj_weight, down_proj_weight, act_fn):
+#         # Compute the forward pass similar to LlamaMLP forward function
+#         gate_proj = gate_proj_weight.t() @ x
+#         gate_proj = act_fn(gate_proj)
+#         up_proj = up_proj_weight.t() @ x
+#         down_proj = down_proj_weight.t() @ (gate_proj * up_proj)
+
+#         # Save tensors for backward pass
+#         ctx.save_for_backward(x, gate_proj, up_proj, gate_proj_weight, up_proj_weight, down_proj_weight)
+#         ctx.act_fn = act_fn
+
+#         return down_proj
+
+#     @staticmethod
+#     def backward(ctx, grad_output):
+#         x, gate_proj, up_proj, gate_proj_weight, up_proj_weight, down_proj_weight = ctx.saved_tensors
+#         act_fn = ctx.act_fn
+
+#         # Compute gradients similar to LoRA_MLP backward function
+#         grad_gate_proj = grad_output @ down_proj_weight.t()
+#         grad_up_proj = x.t() @ (grad_output * gate_proj) @ up_proj_weight.t()
+#         grad_x = (grad_output * up_proj) @ (gate_proj_weight.t() * act_fn(gate_proj) * (1 - act_fn(gate_proj)))
+
+#         return grad_x, grad_gate_proj.t(), grad_up_proj.t(), None, None
+
+# class LlamaMLPFunction(torch.autograd.Function):
+#     @staticmethod
+#     @torch.cuda.amp.custom_fwd
+#     def forward(ctx, x, gate_weight, up_weight, down_weight, activation_fn):
+#         # intermediate = activation_fn(F.linear(x, gate_weight, bias=None)) * F.linear(x, up_weight, bias=None)
+#         e = F.linear(x, gate_weight, bias=None)
+#         g = F.linear(x, up_weight, bias=None)
+#         intermediate = swiglu_fg_kernel(activation_fn(e),  g)
+#         down_proj = F.linear(intermediate, down_weight, bias=None)
+#         ctx.save_for_backward(x, gate_weight, up_weight, down_weight, e, g, intermediate)
+#         return down_proj
+
+#     @staticmethod
+#     @torch.cuda.amp.custom_bwd
+#     def backward(ctx, grad_output):
+#         print("backward")
+#         x, gate_weight, up_weight, down_weight, e, g, intermediate = ctx.saved_tensors
+
+#         # Calculate gradients using the provided functions
+#         # e = F.linear(x, gate_weight, bias=None)
+#         # g = F.linear(x, up_weight, bias=None)
+#         h = intermediate#swiglu_fg_kernel(activation_fn(e), g)
+#         DW, DW_f, DW_dfg = swiglu_DWf_DW_dfg_kernel(F.linear(h, down_weight, bias=None), e, g)
+
+#         # Gradient with respect to input
+#         grad_x = F.linear(DW_f, up_weight.t()) + F.linear(DW_dfg, gate_weight.t())
+
+#         # Gradient with respect to gate_weight, up_weight, down_weight
+#         grad_gate_weight = F.linear(x.t(), DW_dfg)
+#         grad_up_weight = F.linear(x.t(), DW_f)
+#         grad_down_weight = F.linear(intermediate.t(), grad_output)
+
+#         return grad_x, grad_gate_weight, grad_up_weight, grad_down_weight, None
+
+
+def LlamaMLP_fast_forward(self, x):
+    return FAST_MLP.apply(x, self.gate_proj.weight, self.up_proj.weight, self.down_proj.weight)
+#LlamaMLPFunction.apply(x, self.gate_proj.weight, self.up_proj.weight, self.down_proj.weight, self.act_fn)
+
+
 
 # https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L590
 def LlamaDecoderLayer_fast_forward(
@@ -311,24 +381,26 @@ def LlamaDecoderLayer_fast_forward(
         use_cache=use_cache,
         padding_mask=padding_mask,
     )
-    # hidden_states = residual + hidden_states
+    hidden_states = residual + hidden_states
 
-    # # Fully Connected
-    # residual = hidden_states
-    # hidden_states = fast_rms_layernorm(self.post_attention_layernorm, hidden_states)
+    # Fully Connected
+    residual = hidden_states
+    hidden_states = fast_rms_layernorm(self.post_attention_layernorm, hidden_states)
     
     #fused kernel sum + rms norm
-    hidden_states, residual = rms_norm_fn(
-                hidden_states,
-                self.post_attention_layernorm.weight,
-                None,
-                eps=self.post_attention_layernorm.variance_epsilon,
-                residual=residual,
-                prenorm=True,
-                residual_in_fp32=False,
-            )
+    # hidden_states, residual = rms_norm_fn(
+    #             hidden_states,
+    #             self.post_attention_layernorm.weight,
+    #             None,
+    #             eps=self.post_attention_layernorm.variance_epsilon,
+    #             residual=residual,
+    #             prenorm=True,
+    #             residual_in_fp32=False,
+    #         )
     hidden_states = self.mlp(hidden_states)
-    hidden_states = add(residual, hidden_states)#residual + hidden_states
+    # silu_times_w3 = kernel_ff(hidden_states, self.mlp.gate_proj.weight, self.mlp.up_proj.weight)
+    # hidden_states = self.mlp.down_proj(silu_times_w3)
+    hidden_states = residual + hidden_states
 
     outputs = (hidden_states,)
 
@@ -623,6 +695,8 @@ class FastLlamaModel:
         LlamaSdpaAttention  .forward = LlamaAttention_fast_forward
         LlamaFlashAttention2.forward = LlamaAttention_fast_forward
         LlamaDecoderLayer   .forward = LlamaDecoderLayer_fast_forward
+        LlamaMLP            .forward = LlamaMLP_fast_forward
+        # LlamaMLP                     = CustomBackwardLlamaMLP
         LlamaModel          .forward = LlamaModel_fast_forward
         LlamaForCausalLM    .forward = LlamaForCausalLM_fast_forward
         PeftModelForCausalLM.forward = PeftModelForCausalLM_fast_forward
