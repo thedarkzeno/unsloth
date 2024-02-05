@@ -42,7 +42,7 @@ class FAST_MLP(torch.autograd.Function):
                 gateW,
                   upW,
                 downW,):
-        dtype = X.dtype
+        # dtype = X.dtype
 
         e = matmul(X, gateW)
         g = matmul(X,   upW)
@@ -69,23 +69,23 @@ class FAST_MLP(torch.autograd.Function):
         X  = X .view(-1, X .shape[-1])
         e  = e .view(-1, e .shape[-1])
         g  = g .view(-1, g .shape[-1])
-        dtype = X.dtype
+        # dtype = X.dtype
 
         # Transpose weight matrices
         gateW_t = gateW.t()
         upW_t = upW.t()
         downW_t = downW.t()
-
+        del upW
+        del gateW
+        del downW
         # DW_f   = (D @ W.T * f)
         # DW_dfg = (D @ W.T * df * g)
         DW = matmul(dY, downW_t)
         DW, e, g = swiglu_DWf_DW_dfg_kernel(DW, e, g)
         h, DW_f, DW_dfg = DW, e, g
 
-        dX = torch.matmul(DW_f, upW.t(), out = X)
-        del upW
-        dX += DW_dfg @ gateW.t()
-        del gateW
+        dX = torch.matmul(DW_f, upW_t, out = X) + DW_dfg @ gateW_t
+        
 
         # Calculate gradients for weight matrices
         dC_dW = matmul(h.t(), dY)
