@@ -311,6 +311,9 @@ def MixtralDecoderLayer_fast_forward(
     return outputs
 pass
 
+def MixtralMLP_fast_forward(self, x):
+    return FAST_MLP.apply(x, self.w1.weight, self.w3.weight, self.w2.weight)
+
 class FastMixtralModel(FastLlamaModel):
 
     @staticmethod
@@ -319,7 +322,7 @@ class FastMixtralModel(FastLlamaModel):
         MixtralSdpaAttention  .forward = MixtralAttention_fast_forward
         MixtralFlashAttention2.forward = MixtralAttention_fast_forward
         MixtralDecoderLayer   .forward = MixtralDecoderLayer_fast_forward
-        MixtralBLockSparseTop2MLP            .forward = LlamaMLP_fast_forward
+        MixtralBLockSparseTop2MLP            .forward = MixtralMLP_fast_forward
         MixtralModel          .forward = LlamaModel_fast_forward
         MixtralForCausalLM    .forward = MixtralForCausalLM_fast_forward
         PeftModelForCausalLM  .forward = PeftModelForCausalLM_fast_forward
