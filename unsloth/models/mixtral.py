@@ -318,7 +318,7 @@ class FastMixtralModel(FastLlamaModel):
         MixtralAttention      .forward = MixtralAttention_fast_forward
         MixtralSdpaAttention  .forward = MixtralAttention_fast_forward
         MixtralFlashAttention2.forward = MixtralAttention_fast_forward
-        MixtralDecoderLayer   .forward = LlamaDecoderLayer_fast_forward
+        MixtralDecoderLayer   .forward = MixtralDecoderLayer_fast_forward
         MixtralBLockSparseTop2MLP            .forward = LlamaMLP_fast_forward
         MixtralModel          .forward = LlamaModel_fast_forward
         MixtralForCausalLM    .forward = MixtralForCausalLM_fast_forward
