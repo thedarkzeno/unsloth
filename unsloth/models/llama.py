@@ -770,6 +770,7 @@ class FastLlamaModel:
             quantization_config = bnb_config,
             token = token,
             rope_scaling = rope_scaling,
+            trust_remote_code=True,
             max_position_embeddings = max_position_embeddings,
         )
         tokenizer = AutoTokenizer.from_pretrained(

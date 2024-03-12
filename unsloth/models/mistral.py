@@ -267,8 +267,8 @@ class FastMistralModel(FastLlamaModel):
         rope_scaling = None, # Mistral does not support RoPE scaling
         fix_tokenizer = True,
     ): 
-        if rope_scaling is not None:
-            logger.warning_once("Unsloth: Mistral models do not support RoPE scaling.")
+        # if rope_scaling is not None:
+        #     logger.warning_once("Unsloth: Mistral models do not support RoPE scaling.")
 
         SUPPORTS_BFLOAT16 = torch.cuda.is_bf16_supported()
         gpu_stats = torch.cuda.get_device_properties(0)
@@ -306,6 +306,8 @@ class FastMistralModel(FastLlamaModel):
             torch_dtype = dtype,
             quantization_config = bnb_config,
             token = token,
+            rope_scaling = rope_scaling,
+            trust_remote_code=True,
             # rope_scaling = rope_scaling,
         )
         tokenizer = AutoTokenizer.from_pretrained(
