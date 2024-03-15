@@ -306,7 +306,7 @@ class FastMistralModel(FastLlamaModel):
             torch_dtype = dtype,
             quantization_config = bnb_config,
             token = token,
-            rope_scaling = rope_scaling,
+            #rope_scaling = rope_scaling,
             trust_remote_code=True,
             # rope_scaling = rope_scaling,
         )
