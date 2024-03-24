@@ -695,7 +695,7 @@ class FastLlamaModel:
         LlamaSdpaAttention  .forward = LlamaAttention_fast_forward
         LlamaFlashAttention2.forward = LlamaAttention_fast_forward
         LlamaDecoderLayer   .forward = LlamaDecoderLayer_fast_forward
-        LlamaMLP            .forward = LlamaMLP_fast_forward
+        # LlamaMLP            .forward = LlamaMLP_fast_forward
         # LlamaMLP                     = CustomBackwardLlamaMLP
         LlamaModel          .forward = LlamaModel_fast_forward
         LlamaForCausalLM    .forward = LlamaForCausalLM_fast_forward
