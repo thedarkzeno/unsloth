@@ -248,7 +248,7 @@ class FastMistralModel(FastLlamaModel):
         MistralSdpaAttention  .forward = MistralAttention_fast_forward
         MistralFlashAttention2.forward = MistralAttention_fast_forward
         MistralDecoderLayer   .forward = LlamaDecoderLayer_fast_forward
-        MistralMLP            .forward = LlamaMLP_fast_forward
+        # MistralMLP            .forward = LlamaMLP_fast_forward
         MistralModel          .forward = LlamaModel_fast_forward
         MistralForCausalLM    .forward = MistralForCausalLM_fast_forward
         PeftModelForCausalLM  .forward = PeftModelForCausalLM_fast_forward
