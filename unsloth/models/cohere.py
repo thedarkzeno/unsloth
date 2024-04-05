@@ -56,7 +56,7 @@ from peft import LoraConfig, TaskType, get_peft_model as _get_peft_model
 from peft import PeftModelForCausalLM
 from bitsandbytes.nn import Linear4bit as Bnb_Linear4bit
 from peft.tuners.lora import Linear4bit as Peft_Linear4bit
-from ..save import patch_saving_functions
+# from ..save import patch_saving_functions
 import re, os, inspect, math, sys
 
 
@@ -1194,7 +1194,7 @@ class FastCohereModel:
                 token            = token,
             )
         pass
-        patch_saving_functions(tokenizer)
+        # patch_saving_functions(tokenizer)
 
         # Fix up config for transformers uploading PEFT
         # Not necessary anymore since we require transformers>=4.37!
@@ -1210,7 +1210,7 @@ class FastCohereModel:
         model.config.update({"unsloth_version" : __version__})
 
         # Add save modules
-        patch_saving_functions(model)
+        # patch_saving_functions(model)
 
         return model, tokenizer
     pass
@@ -1589,7 +1589,7 @@ class FastCohereModel:
             f"Unsloth {__version__} patched {len(model.model.model.layers)} layers with "\
             f"{n_qkv} QKV layers, {n_o} O layers and {n_mlp} MLP layers.",
         )
-        patch_saving_functions(model)
+        # patch_saving_functions(model)
 
         # Patch cross entropy loss labels
         # Fixes https://github.com/unslothai/unsloth/issues/10
