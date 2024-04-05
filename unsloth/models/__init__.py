@@ -16,4 +16,5 @@ from .loader import FastLanguageModel
 from .llama import FastLlamaModel
 from .mistral import FastMistralModel
 from .mixtral import FastMixtralModel
+from .cohere import FastCohereModel
 from .dpo import PatchDPOTrainer
