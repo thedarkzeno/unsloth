@@ -15,6 +15,7 @@
 from .llama import FastLlamaModel, logger
 from .mistral import FastMistralModel
 from .mixtral import FastMixtralModel
+from .cohere import FastCohereModel
 from transformers import AutoConfig
 from transformers import __version__ as transformers_version
 
@@ -72,6 +73,7 @@ class FastLanguageModel(FastLlamaModel):
         if   model_type == "llama":   dispatch_model = FastLlamaModel
         elif model_type == "mistral": dispatch_model = FastMistralModel
         elif model_type == "mixtral": dispatch_model = FastMixtralModel
+        elif model_type == "cohere": dispatch_model = FastCohereModel
         else:
             raise NotImplementedError(
                 f"Unsloth: {model_name} not supported yet!\n"\
