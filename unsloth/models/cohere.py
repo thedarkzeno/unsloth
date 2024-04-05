@@ -1252,12 +1252,12 @@ class FastCohereModel:
                 pass
             pass
             # Downcast RoPE embedding to correct data type
-            if (name.endswith("rotary_emb") or hasattr(module, "cos_cached")) \
-                and (module.cos_cached.dtype != correct_dtype):
+            # if (name.endswith("rotary_emb") or hasattr(module, "cos_cached")) \
+            #     and (module.cos_cached.dtype != correct_dtype):
                 
-                module.cos_cached = module.cos_cached.to(correct_dtype)
-                module.sin_cached = module.sin_cached.to(correct_dtype)
-                pass
+            #     module.cos_cached = module.cos_cached.to(correct_dtype)
+            #     module.sin_cached = module.sin_cached.to(correct_dtype)
+            #     pass
             pass
         pass
 
